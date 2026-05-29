@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Host — Playwright Quiz</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Host — Điều khiển quiz</h1>
+    <p class="sub">Tạo phòng, chia mã cho thí sinh, bấm Bắt đầu khi đủ người.</p>
+
+    <div id="login" class="card">
+      <p class="q-meta">Mã đăng nhập Host (chỉ trainer)</p>
+      <input id="hostPassword" type="password" placeholder="Nhập mã host" autocomplete="current-password" />
+      <button id="btnLogin" class="btn btn-lg">Đăng nhập Host</button>
+      <p id="loginErr" class="sub" style="color: var(--danger); margin-top: 8px"></p>
+    </div>
+
+    <div id="setup" class="card hidden">
+      <p class="sub" style="margin-top: 0">Đã xác thực Host.</p>
+      <button id="btnCreate" class="btn btn-lg">Tạo phòng mới</button>
+      <button id="btnLogout" class="btn btn-ghost" style="margin-top: 12px; width: 100%">Đăng xuất Host</button>
+    </div>
+
+    <div id="lobby" class="hidden">
+      <div class="card">
+        <p class="q-meta">Mã phòng (gửi cho thí sinh)</p>
+        <div id="roomCode" class="code-display">------</div>
+        <p class="sub">Link thí sinh: <a id="playLink" href="#"></a></p>
+        <p><strong id="playerCount">0</strong> người đã vào phòng</p>
+        <ul id="playerList" class="players"></ul>
+        <button id="btnStart" class="btn btn-lg" style="margin-top: 16px">Bắt đầu quiz</button>
+      </div>
+    </div>
+
+    <div id="live" class="hidden">
+      <div class="card">
+        <p class="q-meta" id="liveMeta"></p>
+        <div id="liveTimer" class="timer">45</div>
+        <p id="liveQuestion" class="q-text"></p>
+        <p class="sub" id="answeredStat"></p>
+      </div>
+    </div>
+
+    <div id="reveal" class="hidden">
+      <div class="card reveal-box">
+        <p class="q-meta">Đáp án đúng</p>
+        <p class="correct" id="revealAnswer"></p>
+      </div>
+    </div>
+
+    <div id="done" class="hidden">
+      <div class="card">
+        <h2>Kết quả</h2>
+        <table>
+          <thead><tr><th>#</th><th>Tên</th><th>Điểm</th></tr></thead>
+          <tbody id="rankBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p id="status" class="sub"></p>
+  </div>
+  <script src="/static/host.js"></script>
+</body>
+</html>

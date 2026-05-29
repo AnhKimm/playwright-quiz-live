@@ -1,0 +1,12 @@
+# Render Blueprint (repo độc lập — root = quiz_live)
+services:
+  - type: web
+    name: playwright-quiz-live
+    plan: free
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: QUIZ_HOST_PASSWORD
+        sync: false

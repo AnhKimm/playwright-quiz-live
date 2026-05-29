@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thi — Playwright Quiz</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body oncopy="return false" oncut="return false">
+  <div class="container">
+    <h1>Playwright Quiz</h1>
+
+    <div id="join" class="card">
+      <p class="q-meta">Nhập mã phòng từ host</p>
+      <input id="codeInput" type="text" placeholder="VD: ABC123" maxlength="8" />
+      <input id="nameInput" type="text" placeholder="Tên của bạn" maxlength="40" />
+      <button id="btnJoin" class="btn btn-lg">Vào phòng</button>
+      <ul class="rules" style="margin-top: 16px">
+        <li>Mỗi câu <strong>45 giây</strong></li>
+        <li><strong>Không dùng AI</strong> / không tra cứu</li>
+        <li>Không copy nội dung câu hỏi</li>
+      </ul>
+    </div>
+
+    <div id="wait" class="hidden card">
+      <p class="sub">Đã vào phòng. Chờ host bắt đầu…</p>
+      <p id="waitName"></p>
+    </div>
+
+    <div id="quiz" class="hidden">
+      <div id="focusWarn" class="status-bar hidden">Bạn vừa rời tab quiz — host đã được thông báo.</div>
+      <div class="card">
+        <p class="q-meta" id="qMeta"></p>
+        <div id="timer" class="timer">45</div>
+        <p id="qText" class="q-text"></p>
+        <div id="options" class="options"></div>
+      </div>
+    </div>
+
+    <div id="reveal" class="hidden card reveal-box">
+      <p class="q-meta">Đáp án đúng</p>
+      <p class="correct" id="revealAns"></p>
+      <p class="sub" id="myScore"></p>
+    </div>
+
+    <div id="done" class="hidden card">
+      <h2>Hoàn thành</h2>
+      <table>
+        <thead><tr><th>#</th><th>Tên</th><th>Điểm</th></tr></thead>
+        <tbody id="rankBody"></tbody>
+      </table>
+    </div>
+
+    <p id="err" class="sub" style="color: var(--danger)"></p>
+  </div>
+  <script src="/static/play.js"></script>
+</body>
+</html>
