@@ -74,7 +74,20 @@
           <thead><tr><th>#</th><th>Tên</th><th>Điểm</th><th>Đánh giá</th></tr></thead>
           <tbody id="rankBody"></tbody>
         </table>
+        <button type="button" id="btnWrongStats" class="btn btn-lg" style="margin-top: 20px">
+          Thống kê câu sai nhiều nhất
+        </button>
+        <p id="hostReportLink" class="sub report-link hidden" style="margin-top: 12px"></p>
       </div>
+    </div>
+
+    <div id="wrongStats" class="hidden">
+      <div class="card wrong-stats-header">
+        <h2>Câu sai nhiều nhất</h2>
+        <p class="sub">Sắp xếp theo số người trả lời sai (cao → thấp)</p>
+        <button type="button" id="btnBackDone" class="btn">← Quay lại kết quả</button>
+      </div>
+      <div id="wrongStatsList" class="wrong-stats-list"></div>
     </div>
 
     <div id="focusWarnings" class="focus-warnings hidden"></div>
@@ -82,7 +95,7 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-  <script src="/static/quiz_ui.js"></script>
-  <script src="/static/host.js"></script>
+  <script src="/static/quiz_ui.js?v=3"></script>
+  <script src="/static/host.js?v=3"></script>
 </body>
 </html>

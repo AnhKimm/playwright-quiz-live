@@ -279,6 +279,83 @@ input[type="text"] {
   white-space: pre-line;
 }
 
+.wrong-stats-header {
+  margin-bottom: 16px;
+}
+
+.wrong-stats-header h2 {
+  margin: 0 0 8px;
+}
+
+.wrong-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.wrong-stats-card {
+  margin: 0;
+}
+
+.wrong-names-box {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(245, 101, 101, 0.08);
+  border-left: 3px solid var(--danger);
+}
+
+.wrong-names-title {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.wrong-names-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  line-height: 1.6;
+}
+
+.wrong-names-list li {
+  margin: 4px 0;
+}
+
+.wrong-choice {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.report-page .opt-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  margin-bottom: 8px;
+}
+
+.report-page .opt-btn.opt-correct {
+  border-color: var(--ok);
+  background: #1a3d2e;
+  color: var(--text);
+}
+
+.report-page .opt-btn.opt-wrong {
+  border-color: var(--danger);
+  background: #3d1f1f;
+  color: var(--text);
+}
+
+.report-link a {
+  color: var(--accent-hover);
+  word-break: break-all;
+}
+
 .options-readonly .opt-btn {
   cursor: default;
 }

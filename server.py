@@ -9,11 +9,15 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import secrets
 import string
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from report_builder import REPORT_DIR, save_session_reports
 
 from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
@@ -30,6 +34,41 @@ QUIZ_JSON = Path(__file__).parent / "quiz_data.json"
 def ordered_options(options: dict[str, str]) -> dict[str, str]:
     """Đáp án luôn theo thứ tự A → B → C → D."""
     return {k: options[k] for k in OPTION_KEYS if k in options}
+
+
+def build_wrong_stats(session: "Session") -> list[dict]:
+    """Thống kê câu sai theo số người trả lời sai (giảm dần)."""
+    items: list[dict] = []
+    for i, q in enumerate(QUESTIONS):
+        correct = str(q["answer"]).upper()
+        wrong_players: list[dict[str, str]] = []
+        for p in session.players.values():
+            choice = str((p.get("answers") or {}).get(i, "") or "").upper()
+            if choice != correct:
+                wrong_players.append(
+                    {
+                        "name": p["name"],
+                        "choice": choice,
+                    }
+                )
+        wrong_players.sort(key=lambda x: x["name"].casefold())
+        item: dict[str, Any] = {
+            "index": i,
+            "id": q["id"],
+            "tag": q.get("tag", ""),
+            "question": q["question"],
+            "answer": correct,
+            "options": ordered_options(q["options"]),
+            "wrong_count": len(wrong_players),
+            "wrong_players": wrong_players,
+        }
+        if q.get("image"):
+            item["image"] = q["image"]
+        if q.get("options_as_code"):
+            item["options_as_code"] = True
+        items.append(item)
+    items.sort(key=lambda x: (-x["wrong_count"], x["index"]))
+    return items
 
 
 def build_review_questions() -> list[dict]:
@@ -261,10 +300,26 @@ class Session:
             self._timer_task.cancel()
         ranked = sorted(self.player_list(), key=lambda x: (-x["score"], x["name"]))
         review_questions = build_review_questions()
+        wrong_stats = build_wrong_stats(self)
+        finished_at = datetime.now()
+        reports = save_session_reports(
+            self,
+            wrong_stats=wrong_stats,
+            review_questions=review_questions,
+            ranking=ranked,
+            finished_at=finished_at,
+        )
         base = {"type": "finished", "ranking": ranked, "total": len(QUESTIONS)}
         if self.host_ws:
             try:
-                await self.host_ws.send_json(base)
+                await self.host_ws.send_json(
+                    {
+                        **base,
+                        "wrong_stats": wrong_stats,
+                        "report_url": reports["host_report"],
+                        "finished_at": reports["finished_at"],
+                    }
+                )
             except Exception:
                 pass
         dead: list[str] = []
@@ -282,6 +337,8 @@ class Session:
                         **base,
                         "my_answers": my_answers,
                         "questions": review_questions,
+                        "report_url": reports["player_reports"].get(pid, ""),
+                        "finished_at": reports["finished_at"],
                     }
                 )
             except Exception:
@@ -561,6 +618,16 @@ def page_play() -> FileResponse:
 @app.get("/index.html")
 def page_index() -> FileResponse:
     return _html_page("index")
+
+
+@app.get("/reports/{filename}")
+def get_report(filename: str) -> FileResponse:
+    if not re.fullmatch(r"[\w\-]+\.html", filename):
+        raise HTTPException(404, "File not found")
+    path = REPORT_DIR / filename
+    if not path.is_file():
+        raise HTTPException(404, "File not found")
+    return FileResponse(path, media_type="text/html; charset=utf-8")
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

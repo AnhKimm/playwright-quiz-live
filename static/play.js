@@ -180,6 +180,7 @@ function handleMsg(msg) {
         show(done);
         renderRankingTable(msg.ranking || [], msg.total, "rankBody", playerId, playerNameCell, true);
         updateReviewButton();
+        showPlayerReportLink(msg.report_url);
         showCelebrationPopup(msg.ranking || [], msg.total, playerId);
       });
       break;
@@ -284,6 +285,19 @@ async function loadReviewData(msg) {
   } else {
     loadReviewFromStorage();
   }
+}
+
+function showPlayerReportLink(url) {
+  const el = $("playerReportLink");
+  if (!el) return;
+  if (!url) {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  const href = url.startsWith("http") ? url : `${location.origin}${url}`;
+  el.classList.remove("hidden");
+  el.innerHTML = `Tải bài làm (HTML): <a href="${href}" target="_blank" rel="noopener">mở báo cáo</a>`;
 }
 
 function updateReviewButton() {
