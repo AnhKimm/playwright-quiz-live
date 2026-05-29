@@ -532,6 +532,12 @@ def health() -> dict:
     return {"status": "ok", "questions": len(QUESTIONS)}
 
 
+@app.get("/api/quiz/review")
+def quiz_review() -> dict:
+    """Dữ liệu xem lại bài (dự phòng khi WebSocket finished thiếu payload)."""
+    return {"questions": build_review_questions()}
+
+
 @app.get("/")
 def root() -> FileResponse:
     return _html_page("home")

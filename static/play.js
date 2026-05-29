@@ -14,6 +14,8 @@ let revealTimer = null;
 let quizActive = false;
 let serverClosedWithMessage = false;
 let reviewData = null;
+let currentQIndex = -1;
+const myAnswersByIndex = {};
 
 function showFocusWarn() {
   const el = $("focusWarn");
@@ -158,6 +160,7 @@ function handleMsg(msg) {
       quizActive = true;
       show(quiz);
       selected = "";
+      currentQIndex = msg.index;
       $("qMeta").textContent = `Câu ${msg.index + 1}/${msg.total}`;
       renderQuestionBlock($("qText"), $("qImageWrap"), $("qImage"), msg.question, msg.image);
       renderOptions(msg.options, !!msg.options_as_code);
@@ -173,16 +176,12 @@ function handleMsg(msg) {
     case "finished":
       quizActive = false;
       stopRevealCountdown();
-      if (msg.questions && msg.my_answers) {
-        reviewData = { questions: msg.questions, myAnswers: msg.my_answers };
-      }
-      show(done);
-      renderRankingTable(msg.ranking || [], msg.total, "rankBody", playerId, playerNameCell, true);
-      const btnReview = $("btnReview");
-      if (btnReview) {
-        btnReview.classList.toggle("hidden", !reviewData);
-      }
-      showCelebrationPopup(msg.ranking || [], msg.total, playerId);
+      void loadReviewData(msg).then(() => {
+        show(done);
+        renderRankingTable(msg.ranking || [], msg.total, "rankBody", playerId, playerNameCell, true);
+        updateReviewButton();
+        showCelebrationPopup(msg.ranking || [], msg.total, playerId);
+      });
       break;
     case "error":
       serverClosedWithMessage = true;
@@ -208,6 +207,9 @@ function renderOptions(options, optionsAsCode) {
 function submitAnswer(choice) {
   if (!quizActive || !ws || ws.readyState !== WebSocket.OPEN) return;
   selected = choice;
+  if (currentQIndex >= 0) {
+    myAnswersByIndex[currentQIndex] = choice;
+  }
   document.querySelectorAll("#options .opt-btn").forEach((b) => {
     b.classList.remove("selected");
     if (b.dataset.choice === choice) b.classList.add("selected");
@@ -215,8 +217,98 @@ function submitAnswer(choice) {
   ws.send(JSON.stringify({ action: "answer", choice }));
 }
 
-function openReview() {
-  if (!reviewData) return;
+function reviewStorageKey() {
+  const code = $("codeInput")?.value?.trim().toUpperCase() || "";
+  return code && playerId ? `quizReview:${code}:${playerId}` : "";
+}
+
+function saveReviewToStorage() {
+  const key = reviewStorageKey();
+  if (key && reviewData) {
+    try {
+      sessionStorage.setItem(key, JSON.stringify(reviewData));
+    } catch {
+      /* ignore quota */
+    }
+  }
+}
+
+function loadReviewFromStorage() {
+  const key = reviewStorageKey();
+  if (!key) return false;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data?.questions?.length) {
+      reviewData = data;
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+async function fetchReviewQuestions() {
+  const res = await fetch("/api/quiz/review");
+  if (!res.ok) throw new Error("Không tải được dữ liệu ôn bài");
+  const data = await res.json();
+  return data.questions || [];
+}
+
+function buildMyAnswersFromLocal(total) {
+  return Array.from({ length: total }, (_, i) => myAnswersByIndex[i] || "");
+}
+
+async function loadReviewData(msg) {
+  const total = msg.total || 35;
+  let questions = msg.questions;
+  let myAnswers = msg.my_answers;
+
+  if (!questions?.length) {
+    try {
+      questions = await fetchReviewQuestions();
+    } catch {
+      questions = null;
+    }
+  }
+
+  if (!myAnswers?.length) {
+    myAnswers = buildMyAnswersFromLocal(total);
+  }
+
+  if (questions?.length) {
+    reviewData = { questions, myAnswers };
+    saveReviewToStorage();
+  } else {
+    loadReviewFromStorage();
+  }
+}
+
+function updateReviewButton() {
+  const btnReview = $("btnReview");
+  if (btnReview) {
+    btnReview.classList.toggle("hidden", !reviewData?.questions?.length);
+  }
+}
+
+async function openReview() {
+  if (!reviewData?.questions?.length) {
+    loadReviewFromStorage();
+  }
+  if (!reviewData?.questions?.length) {
+    try {
+      const questions = await fetchReviewQuestions();
+      reviewData = {
+        questions,
+        myAnswers: buildMyAnswersFromLocal(questions.length),
+      };
+    } catch {
+      setErr("Không tải được bài làm để xem lại. Hãy làm xong một lượt quiz mới.");
+      return;
+    }
+  }
   show(review);
   renderReviewPage($("reviewList"), $("reviewSummary"), reviewData.questions, reviewData.myAnswers);
   window.scrollTo({ top: 0, behavior: "smooth" });
