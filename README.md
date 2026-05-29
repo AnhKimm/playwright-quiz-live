@@ -1,13 +1,11 @@
 # Playwright Quiz Live
 
-Ứng dụng quiz **realtime** cho training Playwright Python: host điều khiển cả phòng, **10 giây/câu**, đồng bộ qua WebSocket.
-
-Phù hợp buổi kiểm tra nội bộ — thí sinh chỉ cần trình duyệt, không cần cùng mạng LAN khi deploy lên cloud.
+Ứng dụng quiz **realtime** cho training Playwright Python, đồng bộ qua WebSocket.
 
 ## Tính năng
 
 - Host tạo phòng, thí sinh join bằng mã 6 ký tự
-- Timer **10s/câu** do server điều khiển (không chỉnh trên client)
+- Timer **...s/câu** do server điều khiển (không chỉnh trên client)
 - Đăng nhập **Host** bằng mã `QUIZ_HOST_PASSWORD` (thí sinh không cần)
 - Bảng xếp hạng cuối buổi
 - Cảnh báo khi thí sinh rời tab quiz
@@ -68,7 +66,7 @@ python export_quiz_json.py
 1. Push repo lên GitHub
 2. [Render](https://render.com) → **Blueprint** → chọn repo này
 3. Thêm env: `QUIZ_HOST_PASSWORD`
-4. URL public: `https://playwright-quiz-live.onrender.com` (tên có thể khác)
+4. URL public: `https://playwright-quiz-live.onrender.com` 
 
 Chi tiết: **[RENDER_SETUP.md](./RENDER_SETUP.md)**
 
@@ -95,7 +93,6 @@ Xem `.env.example`.
 
 ## Lưu ý
 
-- Không chặn 100% AI — nên giám sát trực tiếp trong buổi thi
 - Render **free** có thể **ngủ** sau ~15 phút idle → host vào sớm 5 phút trước buổi thi
 - Restart server = mất phòng quiz đang chơi (tạo phòng mới)
 
