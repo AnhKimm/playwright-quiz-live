@@ -16,9 +16,9 @@
       <input id="nameInput" type="text" placeholder="Tên của bạn" maxlength="40" />
       <button id="btnJoin" class="btn btn-lg">Vào phòng</button>
       <ul class="rules" style="margin-top: 16px">
-        <li>Mỗi câu <strong>45 giây</strong></li>
-        <li><strong>Không dùng AI</strong> / không tra cứu</li>
-        <li>Không copy nội dung câu hỏi</li>
+        <li>Mỗi câu hỏi và trả lời trong vòng <strong>10 giây</strong></li>
+        <li><strong>KHÔNG RELOAD</strong> lại trang khi đang làm bài test</li>
+        <!-- <li>Không copy nội dung câu hỏi</li> -->
       </ul>
     </div>
 
@@ -31,28 +31,51 @@
       <div id="focusWarn" class="status-bar hidden">Bạn vừa rời tab quiz — host đã được thông báo.</div>
       <div class="card">
         <p class="q-meta" id="qMeta"></p>
-        <div id="timer" class="timer">45</div>
+        <div id="timer" class="timer">10</div>
         <p id="qText" class="q-text"></p>
         <div id="options" class="options"></div>
       </div>
     </div>
 
     <div id="reveal" class="hidden card reveal-box">
-      <p class="q-meta">Đáp án đúng</p>
-      <p class="correct" id="revealAns"></p>
+      <p class="q-meta" id="revealMeta"></p>
+      <p class="q-meta">Đáp án</p>
+      <p id="revealQuestion" class="q-text"></p>
+      <div id="revealOptions" class="options options-readonly"></div>
       <p class="sub" id="myScore"></p>
+      <p class="q-meta reveal-wait">Câu tiếp theo sau <span id="revealCountdown">3</span>s</p>
+      <h2 class="reveal-rank-title">Bảng xếp hạng</h2>
+      <table class="rank-table">
+        <thead><tr><th>#</th><th>Tên</th><th>Điểm</th></tr></thead>
+        <tbody id="revealRankBody"></tbody>
+      </table>
     </div>
 
     <div id="done" class="hidden card">
       <h2>Hoàn thành</h2>
       <table>
-        <thead><tr><th>#</th><th>Tên</th><th>Điểm</th></tr></thead>
+        <thead><tr><th>#</th><th>Tên</th><th>Điểm</th><th>Đánh giá</th></tr></thead>
         <tbody id="rankBody"></tbody>
       </table>
     </div>
 
     <p id="err" class="sub" style="color: var(--danger)"></p>
   </div>
+
+  <div id="celebrationOverlay" class="celebration-overlay hidden" role="dialog" aria-modal="true">
+    <canvas id="fireworksCanvas" class="fireworks-canvas" aria-hidden="true"></canvas>
+    <div class="celebration-modal card">
+      <h2 class="celebration-title">🎉 Chúc mừng!</h2>
+      <p id="celebrationWinner" class="celebration-winner"></p>
+      <div id="celebrationMyEval" class="celebration-eval"></div>
+      <p class="q-meta eval-legend-title">Thang đánh giá</p>
+      <ul id="evalLegend" class="eval-legend"></ul>
+      <button type="button" id="btnCloseCelebration" class="btn btn-lg">Xem bảng xếp hạng</button>
+    </div>
+  </div>
+
+  <script src="/static/quiz_ui.js"></script>
+  <script src="/static/celebration.js"></script>
   <script src="/static/play.js"></script>
 </body>
 </html>

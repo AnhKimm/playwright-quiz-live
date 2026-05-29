@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import random
 import secrets
 import string
 import time
@@ -21,10 +20,35 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-QUESTION_SECONDS = 45
+QUESTION_SECONDS = 10
 REVEAL_SECONDS = 3
+OPTION_KEYS = ("A", "B", "C", "D")
 STATIC_DIR = Path(__file__).parent / "static"
 QUIZ_JSON = Path(__file__).parent / "quiz_data.json"
+
+
+def ordered_options(options: dict[str, str]) -> dict[str, str]:
+    """Đáp án luôn theo thứ tự A → B → C → D."""
+    return {k: options[k] for k in OPTION_KEYS if k in options}
+
+
+def _load_dotenv_files() -> None:
+    """Nạp .env local (quiz_live/ hoặc tests_python/) nếu biến chưa có trong môi trường."""
+    for path in (Path(__file__).parent / ".env", Path(__file__).parent.parent / ".env"):
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
+
+
+_load_dotenv_files()
 
 app = FastAPI(title="Playwright Quiz Live")
 sessions: dict[str, Session] = {}
@@ -77,13 +101,6 @@ def new_code(length: int = 6) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def shuffle_options(options: dict[str, str]) -> tuple[list[str], dict[str, str]]:
-    """Return display order and map display_key -> original_key."""
-    keys = list(options.keys())
-    random.shuffle(keys)
-    return keys, {k: k for k in keys}
-
-
 class Session:
     def __init__(self, code: str, host_token: str) -> None:
         self.code = code
@@ -96,11 +113,15 @@ class Session:
         self.question_deadline: float = 0
         self.reveal_deadline: float = 0
         self._timer_task: asyncio.Task | None = None
-        self.per_question_order: dict[int, list[str]] = {}
 
     def player_list(self) -> list[dict]:
         return [
-            {"id": pid, "name": p["name"], "score": p["score"]}
+            {
+                "id": pid,
+                "name": p["name"],
+                "score": p["score"],
+                "left": not p.get("connected", True),
+            }
             for pid, p in self.players.items()
         ]
 
@@ -122,9 +143,6 @@ class Session:
 
     def question_payload(self, index: int) -> dict:
         q = QUESTIONS[index]
-        order = list(q["options"].keys())
-        random.shuffle(order)
-        self.per_question_order[index] = order
         return {
             "type": "question",
             "index": index,
@@ -132,7 +150,7 @@ class Session:
             "id": q["id"],
             "tag": q["tag"],
             "question": q["question"],
-            "options": {k: q["options"][k] for k in order},
+            "options": ordered_options(q["options"]),
             "duration": QUESTION_SECONDS,
             "deadline": self.question_deadline,
         }
@@ -176,12 +194,17 @@ class Session:
             ans = p["answers"].get(self.current_index)
             if ans == correct:
                 p["score"] += 1
+        ranking = sorted(self.player_list(), key=lambda x: (-x["score"], x["name"]))
         await self.broadcast(
             {
                 "type": "reveal",
                 "index": self.current_index,
+                "total": len(QUESTIONS),
+                "question": q["question"],
+                "options": ordered_options(q["options"]),
                 "correct": correct,
-                "scores": self.player_list(),
+                "ranking": ranking,
+                "reveal_seconds": REVEAL_SECONDS,
             }
         )
         self.reveal_deadline = time.time() + REVEAL_SECONDS
@@ -358,6 +381,7 @@ async def ws_play(websocket: WebSocket, code: str) -> None:
             "answer_times": {},
             "joined_at": time.time(),
             "focus_lost": 0,
+            "connected": True,
         }
         session.player_ws[player_id] = websocket
         await websocket.send_json(
@@ -366,7 +390,7 @@ async def ws_play(websocket: WebSocket, code: str) -> None:
                 "player_id": player_id,
                 "code": code,
                 "rules": [
-                    "Mỗi câu 45 giây — hết giờ không gửi được đáp án",
+                    "Mỗi câu 10 giây — hết giờ không gửi được đáp án",
                     "Không dùng AI / không tra cứu — tự làm",
                     "Không copy câu hỏi; giữ tab quiz đang mở",
                 ],
@@ -399,12 +423,27 @@ async def ws_play(websocket: WebSocket, code: str) -> None:
     finally:
         if player_id:
             session.player_ws.pop(player_id, None)
-            session.players.pop(player_id, None)
-            await session.broadcast(
-                {"type": "lobby_update", "players": session.player_list()},
-                host=True,
-                players=False,
-            )
+            if session.phase == "lobby":
+                session.players.pop(player_id, None)
+                await session.broadcast(
+                    {"type": "lobby_update", "players": session.player_list()},
+                    host=True,
+                    players=False,
+                )
+            elif player_id in session.players:
+                session.players[player_id]["connected"] = False
+                await session.broadcast(
+                    {"type": "player_left", "players": session.player_list()},
+                    host=True,
+                    players=False,
+                )
+
+
+def _html_page(name: str) -> FileResponse:
+    path = STATIC_DIR / f"{name}.html"
+    if not path.exists():
+        raise HTTPException(404, detail=f"Page not found: {name}")
+    return FileResponse(path)
 
 
 @app.get("/health")
@@ -413,16 +452,28 @@ def health() -> dict:
 
 
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+def root() -> FileResponse:
+    return _html_page("home")
+
+
+@app.get("/home.html")
+def page_home() -> FileResponse:
+    return _html_page("home")
+
+
+@app.get("/host.html")
+def page_host() -> FileResponse:
+    return _html_page("host")
+
+
+@app.get("/play.html")
+def page_play() -> FileResponse:
+    return _html_page("play")
+
+
+@app.get("/index.html")
+def page_index() -> FileResponse:
+    return _html_page("index")
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-
-@app.get("/{page}.html")
-def html_pages(page: str) -> FileResponse:
-    path = STATIC_DIR / f"{page}.html"
-    if not path.exists():
-        raise HTTPException(404)
-    return FileResponse(path)

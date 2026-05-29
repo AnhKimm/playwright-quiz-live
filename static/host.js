@@ -13,6 +13,8 @@ let ws = null;
 let hostToken = "";
 let roomCode = "";
 let hostAuthToken = sessionStorage.getItem(HOST_AUTH_KEY) || "";
+let revealTimer = null;
+let lastRevealTotal = 0;
 
 function wsUrl(path) {
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -150,11 +152,61 @@ $("btnStart").onclick = () => {
   }
 };
 
-function renderPlayers(players) {
-  $("playerCount").textContent = String(players.length);
-  $("playerList").innerHTML = players
-    .map((p) => `<li>${escapeHtml(p.name)} <span class="badge">${p.score} đ</span></li>`)
+function playerNameCell(p) {
+  const left = p.left ? ' <span class="badge-left">(đã rời)</span>' : "";
+  return `${escapeHtml(p.name)}${left}`;
+}
+
+function renderPlayerScores(players, listEl, countEl) {
+  if (countEl) countEl.textContent = String(players.length);
+  listEl.innerHTML = players
+    .map((p) => `<li>${playerNameCell(p)} <span class="badge">${p.score} đ</span></li>`)
     .join("");
+}
+
+function renderPlayers(players) {
+  renderPlayerScores(players, $("playerList"), $("playerCount"));
+}
+
+function renderRanking(ranking, total) {
+  renderRankingTable(ranking, total, "rankBody", "", playerNameCell, true);
+}
+
+function stopRevealCountdown() {
+  if (revealTimer) {
+    clearInterval(revealTimer);
+    revealTimer = null;
+  }
+}
+
+function startRevealCountdown(seconds) {
+  stopRevealCountdown();
+  const el = $("revealCountdown");
+  if (!el) return;
+  let left = seconds;
+  el.textContent = String(left);
+  revealTimer = setInterval(() => {
+    left -= 1;
+    if (left <= 0) {
+      stopRevealCountdown();
+      el.textContent = "0";
+      return;
+    }
+    el.textContent = String(left);
+  }, 1000);
+}
+
+function showReveal(msg) {
+  show(reveal);
+  lastRevealTotal = msg.total || lastRevealTotal;
+  $("revealMeta").textContent = `Sau câu ${msg.index + 1}/${msg.total}`;
+  $("revealQuestion").textContent = msg.question || "";
+  renderOptionsList($("revealOptions"), msg.options || {}, {
+    correct: msg.correct,
+    readonly: true,
+  });
+  renderRankingTable(msg.ranking || [], msg.total, "revealRankBody", "", playerNameCell);
+  startRevealCountdown(msg.reveal_seconds ?? 3);
 }
 
 function escapeHtml(s) {
@@ -167,10 +219,21 @@ function handleMsg(msg) {
     case "lobby_update":
       renderPlayers(msg.players || []);
       break;
+    case "player_left":
+      renderPlayers(msg.players || []);
+      if (!reveal.classList.contains("hidden")) {
+        const ranked = [...(msg.players || [])].sort(
+          (a, b) => b.score - a.score || a.name.localeCompare(b.name)
+        );
+        renderRankingTable(ranked, lastRevealTotal, "revealRankBody", "", playerNameCell);
+      }
+      break;
     case "question":
+      stopRevealCountdown();
       show(live);
       $("liveMeta").textContent = `Câu ${msg.index + 1}/${msg.total} · [${msg.tag}]`;
       $("liveQuestion").textContent = msg.question;
+      renderOptionsList($("liveOptions"), msg.options || {}, { readonly: true });
       updateTimer(msg.duration);
       $("answeredStat").textContent = "";
       break;
@@ -181,18 +244,12 @@ function handleMsg(msg) {
       $("answeredStat").textContent = `${msg.answered_count}/${msg.total_players} đã trả lời`;
       break;
     case "reveal":
-      show(reveal);
-      $("revealAnswer").textContent = msg.correct;
-      renderPlayers(msg.scores || []);
+      showReveal(msg);
       break;
     case "finished":
+      stopRevealCountdown();
       show(done);
-      $("rankBody").innerHTML = (msg.ranking || [])
-        .map(
-          (r, i) =>
-            `<tr><td>${i + 1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}/${msg.total}</td></tr>`
-        )
-        .join("");
+      renderRanking(msg.ranking || [], msg.total);
       setStatus("Quiz kết thúc");
       break;
     case "focus_warning":

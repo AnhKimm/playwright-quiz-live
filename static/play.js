@@ -9,6 +9,7 @@ let ws = null;
 let playerId = "";
 let myScore = 0;
 let selected = "";
+let revealTimer = null;
 
 const params = new URLSearchParams(location.search);
 if (params.get("code")) {
@@ -31,6 +32,55 @@ function setErr(msg) {
 
 function escapeHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function playerNameCell(p) {
+  const left = p.left ? ' <span class="badge-left">(đã rời)</span>' : "";
+  return `${escapeHtml(p.name)}${left}`;
+}
+
+function stopRevealCountdown() {
+  if (revealTimer) {
+    clearInterval(revealTimer);
+    revealTimer = null;
+  }
+}
+
+function startRevealCountdown(seconds) {
+  stopRevealCountdown();
+  const el = $("revealCountdown");
+  if (!el) return;
+  let left = seconds;
+  el.textContent = String(left);
+  revealTimer = setInterval(() => {
+    left -= 1;
+    if (left <= 0) {
+      stopRevealCountdown();
+      el.textContent = "0";
+      return;
+    }
+    el.textContent = String(left);
+  }, 1000);
+}
+
+function renderRevealRanking(ranking, total) {
+  renderRankingTable(ranking, total, "revealRankBody", playerId, playerNameCell);
+}
+
+function showReveal(msg) {
+  show(reveal);
+  $("revealMeta").textContent = `Sau câu ${msg.index + 1}/${msg.total}`;
+  $("revealQuestion").textContent = msg.question || "";
+  renderOptionsList($("revealOptions"), msg.options || {}, {
+    correct: msg.correct,
+    readonly: true,
+    selected: selected,
+  });
+  const me = (msg.ranking || []).find((s) => s.id === playerId);
+  myScore = me ? me.score : myScore;
+  $("myScore").textContent = `Điểm của bạn: ${myScore}/${msg.total}`;
+  renderRevealRanking(msg.ranking || [], msg.total);
+  startRevealCountdown(msg.reveal_seconds ?? 3);
 }
 
 $("btnJoin").onclick = () => {
@@ -70,6 +120,7 @@ function handleMsg(msg) {
       $("waitName").textContent = `Xin chào, ${$("nameInput").value.trim()}!`;
       break;
     case "question":
+      stopRevealCountdown();
       show(quiz);
       selected = "";
       $("qMeta").textContent = `Câu ${msg.index + 1}/${msg.total} · [${msg.tag}]`;
@@ -81,20 +132,13 @@ function handleMsg(msg) {
       updateTimer(msg.remaining);
       break;
     case "reveal":
-      show(reveal);
-      $("revealAns").textContent = `Đáp án: ${msg.correct}`;
-      const me = (msg.scores || []).find((s) => s.id === playerId);
-      myScore = me ? me.score : myScore;
-      $("myScore").textContent = `Điểm của bạn: ${myScore}/${msg.index + 1}`;
+      showReveal(msg);
       break;
     case "finished":
+      stopRevealCountdown();
       show(done);
-      $("rankBody").innerHTML = (msg.ranking || [])
-        .map(
-          (r, i) =>
-            `<tr><td>${i + 1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}/${msg.total}</td></tr>`
-        )
-        .join("");
+      renderRankingTable(msg.ranking || [], msg.total, "rankBody", playerId, playerNameCell, true);
+      showCelebrationPopup(msg.ranking || [], msg.total, playerId);
       break;
     case "error":
       setErr(msg.message);
@@ -103,16 +147,10 @@ function handleMsg(msg) {
 }
 
 function renderOptions(options) {
-  const box = $("options");
-  box.innerHTML = "";
-  for (const [key, text] of Object.entries(options)) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "opt-btn";
-    btn.innerHTML = `<span class="opt-label">${key}.</span> ${escapeHtml(text)}`;
-    btn.onclick = () => submitAnswer(key, btn);
-    box.appendChild(btn);
-  }
+  renderOptionsList($("options"), options, {
+    selected,
+    onSelect: (key, btn) => submitAnswer(key, btn),
+  });
 }
 
 function submitAnswer(choice, btn) {

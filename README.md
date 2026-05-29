@@ -1,13 +1,13 @@
 # Playwright Quiz Live
 
-Ứng dụng quiz **realtime** cho training Playwright Python: host điều khiển cả phòng, **45 giây/câu**, đồng bộ qua WebSocket.
+Ứng dụng quiz **realtime** cho training Playwright Python: host điều khiển cả phòng, **10 giây/câu**, đồng bộ qua WebSocket.
 
 Phù hợp buổi kiểm tra nội bộ — thí sinh chỉ cần trình duyệt, không cần cùng mạng LAN khi deploy lên cloud.
 
 ## Tính năng
 
 - Host tạo phòng, thí sinh join bằng mã 6 ký tự
-- Timer **45s/câu** do server điều khiển (không chỉnh trên client)
+- Timer **10s/câu** do server điều khiển (không chỉnh trên client)
 - Đăng nhập **Host** bằng mã `QUIZ_HOST_PASSWORD` (thí sinh không cần)
 - Bảng xếp hạng cuối buổi
 - Cảnh báo khi thí sinh rời tab quiz
@@ -39,7 +39,7 @@ uvicorn server:app --host 0.0.0.0 --port 8765
 2. Gửi thí sinh link `/play.html` + **mã phòng**
 3. Thí sinh nhập tên, chờ trong lobby
 4. Host bấm **Bắt đầu quiz** khi đủ người
-5. Mỗi câu 45 giây → hiện đáp án → câu tiếp theo
+5. Mỗi câu 10 giây → hiện đáp án → câu tiếp theo
 6. Kết thúc: bảng xếp hạng
 
 ## Cập nhật câu hỏi

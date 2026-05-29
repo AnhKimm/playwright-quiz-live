@@ -38,16 +38,25 @@
     <div id="live" class="hidden">
       <div class="card">
         <p class="q-meta" id="liveMeta"></p>
-        <div id="liveTimer" class="timer">45</div>
+        <div id="liveTimer" class="timer">10</div>
         <p id="liveQuestion" class="q-text"></p>
+        <div id="liveOptions" class="options options-readonly"></div>
         <p class="sub" id="answeredStat"></p>
       </div>
     </div>
 
     <div id="reveal" class="hidden">
       <div class="card reveal-box">
-        <p class="q-meta">Đáp án đúng</p>
-        <p class="correct" id="revealAnswer"></p>
+        <p class="q-meta" id="revealMeta"></p>
+        <p class="q-meta">Đáp án</p>
+        <p id="revealQuestion" class="q-text"></p>
+        <div id="revealOptions" class="options options-readonly"></div>
+        <p class="q-meta reveal-wait">Câu tiếp theo sau <span id="revealCountdown">3</span>s</p>
+        <h2 class="reveal-rank-title">Bảng xếp hạng</h2>
+        <table class="rank-table">
+          <thead><tr><th>#</th><th>Tên</th><th>Điểm</th></tr></thead>
+          <tbody id="revealRankBody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -55,7 +64,7 @@
       <div class="card">
         <h2>Kết quả</h2>
         <table>
-          <thead><tr><th>#</th><th>Tên</th><th>Điểm</th></tr></thead>
+          <thead><tr><th>#</th><th>Tên</th><th>Điểm</th><th>Đánh giá</th></tr></thead>
           <tbody id="rankBody"></tbody>
         </table>
       </div>
@@ -63,6 +72,7 @@
 
     <p id="status" class="sub"></p>
   </div>
+  <script src="/static/quiz_ui.js"></script>
   <script src="/static/host.js"></script>
 </body>
 </html>
