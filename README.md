@@ -1,66 +1,104 @@
 # Playwright Quiz Live
 
-Tool quiz **realtime** cho training: 35 câu từ `Quiz_Playwright_35_Cau_Python.docx`, **45 giây/câu**, host điều khiển cả phòng.
+Ứng dụng quiz **realtime** cho training Playwright Python: host điều khiển cả phòng, **45 giây/câu**, đồng bộ qua WebSocket.
 
-## Cài đặt
+Phù hợp buổi kiểm tra nội bộ — thí sinh chỉ cần trình duyệt, không cần cùng mạng LAN khi deploy lên cloud.
+
+## Tính năng
+
+- Host tạo phòng, thí sinh join bằng mã 6 ký tự
+- Timer **45s/câu** do server điều khiển (không chỉnh trên client)
+- Đăng nhập **Host** bằng mã `QUIZ_HOST_PASSWORD` (thí sinh không cần)
+- Bảng xếp hạng cuối buổi
+- Cảnh báo khi thí sinh rời tab quiz
+- Deploy **Render Free** / Docker / chạy local
+
+## Quick start (local)
 
 ```bash
-cd tests_python
-python3 -m venv .venv_quiz
-source .venv_quiz/bin/activate
-pip install -r quiz_live/requirements.txt
-python quiz_live/export_quiz_json.py
+git clone https://github.com/<your-org>/playwright-quiz-live.git
+cd playwright-quiz-live
+
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+export QUIZ_HOST_PASSWORD="your-host-secret"
+uvicorn server:app --host 0.0.0.0 --port 8765
 ```
 
-## Chạy server
+| Vai trò | URL |
+|--------|-----|
+| Trang chủ | http://localhost:8765 |
+| Host (trainer) | http://localhost:8765/host.html |
+| Thí sinh | http://localhost:8765/play.html |
 
-```bash
-cd tests_python
-# Đặt mã host (chỉ trainer biết) — thí sinh không cần
-export QUIZ_HOST_PASSWORD="ma-host-cua-team"
+## Buổi thi (workflow)
 
-uvicorn quiz_live.server:app --host 0.0.0.0 --port 8765
-```
-
-Copy `quiz_live/.env.example` và export biến trước khi chạy (hoặc đặt trên Render/Docker env).
-
-Mở trình duyệt: **http://localhost:8765**
-
-## Cách dùng trong buổi training
-
-1. **Host (trainer)** → http://localhost:8765/host.html → **Đăng nhập Host** (mã `QUIZ_HOST_PASSWORD`) → **Tạo phòng mới**
-2. Chia **mã phòng** hoặc link `play.html?code=XXXXXX` cho thí sinh
-3. Thí sinh vào **play.html**, nhập tên → chờ lobby
+1. **Host** mở `/host.html` → đăng nhập mã host → **Tạo phòng mới**
+2. Gửi thí sinh link `/play.html` + **mã phòng**
+3. Thí sinh nhập tên, chờ trong lobby
 4. Host bấm **Bắt đầu quiz** khi đủ người
-5. Mọi người làm **cùng lúc**, timer 45s/câu (server điều khiển)
-6. Cuối buổi: bảng xếp hạng trên màn host + thí sinh
-
-## Tính năng chống gian lận (mức cơ bản)
-
-| Tính năng | Mô tả |
-|-----------|--------|
-| Timer server | 45s/câu do server tính, không sửa trên client |
-| Khóa sau khi bắt đầu | Không join giữa chừng |
-| Chống copy | `user-select: none`, chặn Ctrl+C trên trang thi |
-| Cảnh báo rời tab | `visibilitychange` → host thấy cảnh báo |
-| Log thời gian trả lời | Lưu trên server (mở rộng export CSV sau) |
-
-**Lưu ý:** Không chặn 100% AI/điện thoại — nên kèm **giám sát trực tiếp** trong phòng họp.
+5. Mỗi câu 45 giây → hiện đáp án → câu tiếp theo
+6. Kết thúc: bảng xếp hạng
 
 ## Cập nhật câu hỏi
 
-Sửa `build_quiz_python_docx.py` rồi chạy:
+Sửa file **`quiz_data.json`** (mảng JSON: `question`, `options`, `answer`), rồi commit / redeploy.
 
-```bash
-python quiz_live/export_quiz_json.py
+```json
+{
+  "id": 1,
+  "tag": "Script cơ bản",
+  "question": "Nội dung câu hỏi?",
+  "options": { "A": "...", "B": "...", "C": "...", "D": "..." },
+  "answer": "A"
+}
 ```
 
-Restart server.
+Export từ script build monorepo (tuỳ chọn):
 
-## Mạng nội bộ (cùng WiFi)
+```bash
+export QUIZ_BUILD_SCRIPT=/path/to/build_quiz_python_docx.py
+python export_quiz_json.py
+```
 
-Host chạy với `--host 0.0.0.0`, thí sinh truy cập `http://<IP-máy-host>:8765/play.html?code=...`
+## Deploy (Render Free)
 
-## Deploy cho cả team (internet / văn phòng)
+1. Push repo lên GitHub
+2. [Render](https://render.com) → **Blueprint** → chọn repo này
+3. Thêm env: `QUIZ_HOST_PASSWORD`
+4. URL public: `https://playwright-quiz-live.onrender.com` (tên có thể khác)
 
-Xem **[RENDER_SETUP.md](./RENDER_SETUP.md)** (Render free — từng bước) hoặc **[DEPLOY.md](./DEPLOY.md)** (LAN, Docker, VPS, tunnel).
+Chi tiết: **[RENDER_SETUP.md](./RENDER_SETUP.md)**
+
+## Cấu trúc project
+
+```
+├── server.py          # FastAPI + WebSocket
+├── quiz_data.json     # Ngân hàng câu hỏi
+├── static/            # host.html, play.html, JS, CSS
+├── Dockerfile
+├── render.yaml        # Render Blueprint
+├── requirements.txt
+└── RENDER_SETUP.md
+```
+
+## Biến môi trường
+
+| Biến | Bắt buộc | Mô tả |
+|------|----------|--------|
+| `QUIZ_HOST_PASSWORD` | Có | Mã đăng nhập trang Host |
+| `PORT` | Render tự set | Port HTTP (mặc định 8765 local) |
+
+Xem `.env.example`.
+
+## Lưu ý
+
+- Không chặn 100% AI — nên giám sát trực tiếp trong buổi thi
+- Render **free** có thể **ngủ** sau ~15 phút idle → host vào sớm 5 phút trước buổi thi
+- Restart server = mất phòng quiz đang chơi (tạo phòng mới)
+
+## License
+
+Internal training use — BraveSoft / team QA.
