@@ -80,21 +80,183 @@ function renderRankingTable(
     .join("");
 }
 
+function looksLikePython(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  if (/^(Cả |Không thể tương tác)/i.test(t)) return false;
+
+  const hasCode =
+    /\b(page|context|browser|locator|import|def|class|pytest|expect|fixture|dialog|sync_playwright|get_by_|wait_for|frame_|select_|browser_context_args|tracing|autouse)\b/i.test(
+      t
+    ) ||
+    /@pytest\.fixture/.test(t) ||
+    /^[\w.]+\(/.test(t) ||
+    /\bassert\s/.test(t) ||
+    /\.(click|fill|hover|dblclick|goto|check)\(/.test(t) ||
+    /context\.tracing/.test(t);
+
+  if (!hasCode) return false;
+  if (/^(Actions, screenshots|Chỉ \.env)/i.test(t) && !/[();]/.test(t)) return false;
+  if (/^Không vấn đề\s+—/i.test(t) && !/\w+\(/.test(t)) return false;
+  return true;
+}
+
+function optionAsCodeText(text, forceCode) {
+  const raw = String(text || "").trim();
+  if (forceCode) {
+    return raw.replace(/\s+—\s+/g, "\n# ");
+  }
+  if (!looksLikePython(raw)) return null;
+  return raw.replace(/\s+—\s+/g, "\n# ");
+}
+
+function appendOptionContent(parent, text, forceCode) {
+  const codeText = optionAsCodeText(text, forceCode);
+
+  if (codeText !== null) {
+    parent.classList.add("has-code");
+    const pre = document.createElement("pre");
+    pre.className = "code-block";
+    const code = document.createElement("code");
+    code.className = "language-python";
+    code.textContent = codeText;
+    pre.appendChild(code);
+    parent.appendChild(pre);
+    if (window.hljs) {
+      hljs.highlightElement(code);
+    }
+  } else {
+    const span = document.createElement("span");
+    span.className = "opt-text";
+    span.textContent = String(text);
+    parent.appendChild(span);
+  }
+}
+
+function renderQuestionBlock(textEl, imageWrapEl, imageEl, question, imageUrl) {
+  if (textEl) {
+    textEl.textContent = question || "";
+    textEl.style.whiteSpace = "pre-line";
+  }
+  if (!imageWrapEl || !imageEl) return;
+  if (imageUrl) {
+    imageEl.src = imageUrl;
+    imageEl.alt = "Minh họa câu hỏi";
+    imageWrapEl.classList.remove("hidden");
+  } else {
+    imageEl.removeAttribute("src");
+    imageWrapEl.classList.add("hidden");
+  }
+}
+
 function renderOptionsList(container, options, opts = {}) {
-  const { correct = "", readonly = false, selected = "", onSelect = null } = opts;
+  const {
+    correct = "",
+    readonly = false,
+    selected = "",
+    onSelect = null,
+    optionsAsCode = false,
+    reviewUserChoice = "",
+  } = opts;
   if (!container) return;
   container.innerHTML = "";
+  const user = String(reviewUserChoice || "").toUpperCase();
+  const ans = String(correct || "").toUpperCase();
   for (const [key, text] of orderedOptionEntries(options)) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "opt-btn";
     if (readonly) btn.disabled = true;
-    if (key === correct) btn.classList.add("opt-correct");
-    if (key === selected) btn.classList.add("selected");
-    btn.innerHTML = `<span class="opt-label">${key}.</span> ${escapeHtml(text)}`;
+    if (user) {
+      if (key === ans) btn.classList.add("opt-correct");
+      if (key === user && user !== ans) btn.classList.add("opt-wrong");
+    } else {
+      if (key === correct) btn.classList.add("opt-correct");
+      if (key === selected) btn.classList.add("selected");
+    }
+
+    const label = document.createElement("span");
+    label.className = "opt-label";
+    label.textContent = `${key}.`;
+    btn.appendChild(label);
+    appendOptionContent(btn, text, optionsAsCode);
+
     if (!readonly && onSelect) {
       btn.onclick = () => onSelect(key, btn);
     }
     container.appendChild(btn);
+  }
+}
+
+function renderReviewPage(listEl, summaryEl, questions, myAnswers) {
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  let correctCount = 0;
+  (questions || []).forEach((q, idx) => {
+    const userChoice = String((myAnswers && myAnswers[idx]) || "").toUpperCase();
+    const correct = String(q.answer || "").toUpperCase();
+    if (userChoice && userChoice === correct) correctCount += 1;
+
+    const card = document.createElement("article");
+    card.className = "card review-card";
+
+    const meta = document.createElement("p");
+    meta.className = "q-meta";
+    const status =
+      !userChoice
+        ? " · Chưa trả lời"
+        : userChoice === correct
+          ? " · ✓ Đúng"
+          : " · ✗ Sai";
+    meta.textContent = `Câu ${idx + 1}/${questions.length} · ${q.tag || ""}${status}`;
+    card.appendChild(meta);
+
+    const qText = document.createElement("p");
+    qText.className = "q-text";
+    qText.style.whiteSpace = "pre-line";
+    qText.textContent = q.question || "";
+    card.appendChild(qText);
+
+    if (q.image) {
+      const wrap = document.createElement("div");
+      wrap.className = "q-image-wrap";
+      const img = document.createElement("img");
+      img.className = "q-image";
+      img.src = q.image;
+      img.alt = "Minh họa câu hỏi";
+      img.draggable = false;
+      wrap.appendChild(img);
+      card.appendChild(wrap);
+    }
+
+    const opts = document.createElement("div");
+    opts.className = "options options-readonly";
+    renderOptionsList(opts, q.options || {}, {
+      readonly: true,
+      correct: q.answer,
+      reviewUserChoice: userChoice,
+      optionsAsCode: !!q.options_as_code,
+    });
+    card.appendChild(opts);
+
+    if (q.explanation) {
+      const box = document.createElement("div");
+      box.className = "review-explanation";
+      const title = document.createElement("p");
+      title.className = "review-explanation-title";
+      title.textContent = "Giải thích";
+      box.appendChild(title);
+      const body = document.createElement("p");
+      body.className = "review-explanation-body";
+      body.textContent = q.explanation;
+      box.appendChild(body);
+      card.appendChild(box);
+    }
+
+    listEl.appendChild(card);
+  });
+
+  if (summaryEl) {
+    summaryEl.textContent = `Bạn trả lời đúng ${correctCount}/${questions.length} câu.`;
   }
 }

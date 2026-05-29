@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Host — Playwright Quiz</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" />
 </head>
 <body>
   <div class="container">
@@ -40,6 +41,9 @@
         <p class="q-meta" id="liveMeta"></p>
         <div id="liveTimer" class="timer">10</div>
         <p id="liveQuestion" class="q-text"></p>
+        <div id="liveImageWrap" class="q-image-wrap hidden">
+          <img id="liveImage" class="q-image" alt="" draggable="false" />
+        </div>
         <div id="liveOptions" class="options options-readonly"></div>
         <p class="sub" id="answeredStat"></p>
       </div>
@@ -50,6 +54,9 @@
         <p class="q-meta" id="revealMeta"></p>
         <p class="q-meta">Đáp án</p>
         <p id="revealQuestion" class="q-text"></p>
+        <div id="revealImageWrap" class="q-image-wrap hidden">
+          <img id="revealImage" class="q-image" alt="" draggable="false" />
+        </div>
         <div id="revealOptions" class="options options-readonly"></div>
         <p class="q-meta reveal-wait">Câu tiếp theo sau <span id="revealCountdown">3</span>s</p>
         <h2 class="reveal-rank-title">Bảng xếp hạng</h2>
@@ -70,8 +77,11 @@
       </div>
     </div>
 
+    <div id="focusWarnings" class="focus-warnings hidden"></div>
     <p id="status" class="sub"></p>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
   <script src="/static/quiz_ui.js"></script>
   <script src="/static/host.js"></script>
 </body>

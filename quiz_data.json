@@ -1,62 +1,459 @@
 [
   {
-    "id": 36,
-    "tag": "Demo",
-    "question": "Đây là câu hỏi demo số 1?",
+    "id": 1,
+    "tag": "Script cơ bản",
+    "question": "Để mở một trang web và lấy tiêu đề trang trong Playwright Python (sync API), đâu là cách đúng?",
     "options": {
-      "A": "Đáp án A",
-      "B": "Đáp án B",
-      "C": "Đáp án C",
-      "D": "Đáp án D"
+      "A": "page.goto(url); title = page.title()",
+      "B": "page.navigate(url); title = page.get_title()",
+      "C": "page.open(url); title = page.title",
+      "D": "page.goto(url); title = page.get_attribute('title')"
     },
-    "answer": "A"
+    "answer": "A",
+    "explanation": "page.goto() + page.title() là API chuẩn (sync, không cần await). get_title(), page.title (property), get_attribute('title') đều không đúng."
   },
   {
-    "id": 37,
-    "tag": "Demo",
-    "question": "Đây là câu hỏi demo số 2?",
+    "id": 2,
+    "tag": "Script cơ bản",
+    "question": "Đâu là cấu trúc đúng của một file test Playwright Python cơ bản (pytest)?",
     "options": {
-      "A": "Lựa chọn 1",
-      "B": "Lựa chọn 2",
-      "C": "Lựa chọn 3",
-      "D": "Lựa chọn 4"
+      "A": "from playwright.sync_api import sync_playwright;\nwith sync_playwright() as p: browser = p.chromium.launch();\n...",
+      "B": "import pytest\nfrom playwright.sync_api import Page, expect\n\ndef test_ten_test(page: Page):\n    ...",
+      "C": "from playwright.sync_api import sync_playwright\ndef my_test(page): ...\nmy_test(page)",
+      "D": "class Suite:\n    def it_test(self):\n        page.goto(url)"
     },
-    "answer": "C"
+    "answer": "B",
+    "explanation": "3 thành phần: (1) import Page, expect từ playwright.sync_api, (2) hàm test_ bắt đầu bằng test_ cho pytest, (3) nhận page qua fixture trong conftest.py. A là raw API không có test runner. C không qua pytest. D không phải pattern pytest."
   },
   {
-    "id": 38,
-    "tag": "Demo",
-    "question": "Bạn chọn đáp án nào cho câu demo này?",
+    "id": 3,
+    "tag": "Selectors",
+    "question": "Để tìm element bằng text 'Đăng nhập' trong Playwright Python, selector nào sau đây là đúng?",
     "options": {
-      "A": "Option A",
-      "B": "Option B",
-      "C": "Option C",
-      "D": "Option D"
+      "A": "page.locator('text=Đăng nhập')",
+      "B": "page.locator(':text(\"Đăng nhập\")')",
+      "C": "page.get_by_text('Đăng nhập')",
+      "D": "Cả A và C đều đúng"
     },
-    "answer": "B"
+    "answer": "D",
+    "explanation": "A (text=), B (:text) và C (get_by_text) đều hợp lệ. get_by_text() được khuyến nghị nhất. Đáp án D gom A và C — hai cách hay dùng nhất trong training."
   },
   {
-    "id": 39,
-    "tag": "Demo",
-    "question": "Câu hỏi mẫu để test UI quiz?",
+    "id": 4,
+    "tag": "Selectors",
+    "question": "Bạn muốn dùng XPath để tìm tất cả thẻ <button>. Đoạn code nào sau đây KHÔNG hoạt động đúng như XPath trong Playwright?",
     "options": {
-      "A": "Test A",
-      "B": "Test B",
-      "C": "Test C",
-      "D": "Test D"
+      "A": "page.locator('xpath=//button')",
+      "B": "page.locator('//button')",
+      "C": "page.locator('css=button')",
+      "D": "page.locator('//button').all()"
     },
-    "answer": "D"
+    "answer": "C",
+    "explanation": "A, B, D đều dùng XPath engine (D qua locator '//button'). C là CSS selector — có thể tìm được button nhưng KHÔNG qua XPath engine."
   },
   {
-    "id": 40,
-    "tag": "Demo",
-    "question": "Đây là câu hỏi cuối cùng để demo?",
+    "id": 5,
+    "tag": "Selectors",
+    "question": "Trang web có một iframe không có id và không có name, chỉ có src. Cách nào tìm được element bên trong iframe đó?",
     "options": {
-      "A": "Alpha",
-      "B": "Beta",
-      "C": "Gamma",
-      "D": "Delta"
+      "A": "page.frame_locator('iframe').locator('button') — dùng tag name, lấy iframe đầu tiên",
+      "B": "page.frame_locator('iframe[src*=\"payment\"]').locator(\"button\") — lọc theo src",
+      "C": "page.frame(url='**/payment**').locator('button') — dùng URL pattern",
+      "D": "Không thể tương tác với iframe không có id hoặc name"
     },
-    "answer": "A"
+    "answer": "B",
+    "explanation": "A cũng đúng nếu trang chỉ có một iframe, nhưng B an toàn hơn khi có nhiều iframe. Dùng src để lọc là cách phổ biến nhất. page.frame() là API cũ."
+  },
+  {
+    "id": 6,
+    "tag": "Tương tác",
+    "question": "Để điền text vào ô input, phương thức nào được dùng?",
+    "options": {
+      "A": "page.locator('#input').type(text)",
+      "B": "page.locator('#input').fill(text)",
+      "C": "page.locator('#input').write(text)",
+      "D": "page.locator('#input').input(text)"
+    },
+    "answer": "B",
+    "explanation": "fill() xóa nội dung cũ và điền text mới. type() cũng tồn tại nhưng mô phỏng gõ từng ký tự — fill() nhanh hơn và phổ biến hơn."
+  },
+  {
+    "id": 7,
+    "tag": "Tương tác",
+    "question": "Phương thức nào dùng để chọn một option trong thẻ <select>?",
+    "options": {
+      "A": "locator.click(option)",
+      "B": "locator.choose(value)",
+      "C": "locator.select_option(value)",
+      "D": "locator.pick(value)"
+    },
+    "answer": "C",
+    "explanation": "select_option() hỗ trợ value, label hoặc index. Ví dụ: locator.select_option('vn') hoặc locator.select_option(label='Việt Nam')."
+  },
+  {
+    "id": 8,
+    "tag": "Tương tác",
+    "question": "Để tích vào checkbox, phương thức nào phù hợp nhất?",
+    "options": {
+      "A": "locator.click()",
+      "B": "locator.check()",
+      "C": "locator.toggle()",
+      "D": "locator.select()"
+    },
+    "answer": "B",
+    "explanation": "check() đảm bảo checkbox ở trạng thái checked. uncheck() để bỏ tích. click() chỉ toggle."
+  },
+  {
+    "id": 9,
+    "tag": "Tương tác",
+    "question": "Khi test tooltip hiện ra khi hover icon, phương thức nào dùng?",
+    "options": {
+      "A": "locator.mouse_over()",
+      "B": "locator.hover()",
+      "C": "locator.focus()",
+      "D": "locator.trigger_event('mouseover')"
+    },
+    "answer": "B",
+    "explanation": "hover() trigger CSS :hover và mouse event. mouse_over(), trigger_event() không tồn tại. focus() chỉ keyboard focus."
+  },
+  {
+    "id": 10,
+    "tag": "Tương tác",
+    "question": "Giả sử trên màn hình có 2 button [Sign in]:\nButton đầu tiên dùng để đăng nhập bằng account Google\nButton thứ 2 dùng để đăng nhập bằng account Microsoft?\nBạn muốn click vào button Sign in đầu tiên để đăng nhập bằng account Google thì cần viết như thế nào?",
+    "options": {
+      "A": "page.get_by_role(\"button\", name=\"Sign in\").nth(1).click()",
+      "B": "page.get_by_role(\"button\", name=\"Sign in\").first().click()",
+      "C": "page.get_by_role(\"button\", name=\"Sign in\").last().click()",
+      "D": "page.get_by_role(\"button\", name=\"Sign in\").click()"
+    },
+    "answer": "B",
+    "explanation": "Do .first() → chọn button đầu tiên, .nth(1) → là button thứ 2 vì index bắt đầu từ 0. , .last() → chọn button cuối cùng, .click() trực tiếp sẽ fail vì locator match nhiều element.",
+    "image": "/static/images/cau_10.jpg"
+  },
+  {
+    "id": 11,
+    "tag": "Assertions",
+    "question": "Để kiểm tra URL hiện tại là https://example.com, ta dùng assertion nào?",
+    "options": {
+      "A": "assert page.url === 'https://example.com''",
+      "B": "expect(page).to_have_url('https://example.com')",
+      "C": "assert page.get_url() == 'https://example.com'",
+      "D": "expect(page).has_url('https://example.com')"
+    },
+    "answer": "B",
+    "explanation": "expect(page).to_have_url() là web-first assertion có auto-retry, không fail ngay lập tức."
+  },
+  {
+    "id": 12,
+    "tag": "Assertions",
+    "question": "Assertion nào kiểm tra một element có hiển thị trên trang?",
+    "options": {
+      "A": "assert locator.is_visible() is True",
+      "B": "expect(locator).to_be_visible()",
+      "C": "expect(locator).to_be_attached()",
+      "D": "A và B đều đúng như nhau"
+    },
+    "answer": "B",
+    "explanation": "A hoạt động nhưng không auto-retry — dễ flaky. B là web-first assertion. C chỉ kiểm tra DOM, không visible."
+  },
+  {
+    "id": 13,
+    "tag": "Assertions",
+    "question": "Làm thế nào để kiểm tra text của một element là 'Xin chào'?",
+    "options": {
+      "A": "assert locator.inner_text() == 'Xin chào'",
+      "B": "expect(locator).to_have_text('Xin chào')",
+      "C": "expect(locator).to_contain_text('Xin chào')",
+      "D": "B và C"
+    },
+    "answer": "D",
+    "explanation": "Cả B và C đều là web-first assertion có retry. Khớp chính xác 'Xin chào' → ưu tiên to_have_text(). to_contain_text() dùng khi chỉ cần kiểm tra một phần chuỗi."
+  },
+  {
+    "id": 14,
+    "tag": "Assertions",
+    "question": "Button 'Gửi' chỉ enabled sau khi điền đủ form. Web-first assertion khuyến nghị nhất?",
+    "options": {
+      "A": "expect(locator).to_be_visible()",
+      "B": "expect(locator).to_be_enabled()",
+      "C": "assert locator.is_enabled() is True",
+      "D": "expect(locator).not_to_be_disabled()"
+    },
+    "answer": "B",
+    "explanation": "to_be_enabled() auto-retry. A chỉ visible. C không retry. D tương đương nhưng kém tường minh."
+  },
+  {
+    "id": 15,
+    "tag": "Assertions",
+    "question": "Sau khi chọn 'Hà Nội' trong dropdown, assertion nào kiểm tra đúng value của <select>?",
+    "options": {
+      "A": "expect(locator).to_have_text('Hà Nội')",
+      "B": "expect(locator).to_contain_text('Hà Nội')",
+      "C": "expect(locator).to_have_value('hanoi')",
+      "D": "expect(locator).to_be('hanoi')"
+    },
+    "answer": "C",
+    "explanation": "to_have_value() kiểm tra attribute value — với option value='hanoi' thì value là 'hanoi', không phải label hiển thị."
+  },
+  {
+    "id": 16,
+    "tag": "Input phức tạp",
+    "question": "Để upload file trong Playwright Python, cách nào đúng?",
+    "options": {
+      "A": "page.locator('#file').set_input_files('/path/to/file.pdf')",
+      "B": "page.locator('#file').fill('/path/to/file.pdf')",
+      "C": "page.locator('#file').type('/path/to/file.pdf')",
+      "D": "page.locator('#file').click(); page.keyboard.type('/path/to/file.pdf')"
+    },
+    "answer": "A",
+    "explanation": "set_input_files() dành cho file input. fill()/type() không hoạt động với input[type=file]. D là cách Selenium."
+  },
+  {
+    "id": 17,
+    "tag": "Input phức tạp",
+    "question": "Để nhập ngày vào input type='date', cách nào hiệu quả nhất?",
+    "options": {
+      "A": "locator.click() rồi gõ từng ký tự",
+      "B": "locator.fill('2024-01-15')",
+      "C": "locator.select_date(2024, 1, 15)",
+      "D": "locator.set_date('January 15, 2024')"
+    },
+    "answer": "B",
+    "explanation": "fill() với YYYY-MM-DD là cách đơn giản nhất. select_date(), set_date() không tồn tại."
+  },
+  {
+    "id": 18,
+    "tag": "Inspector & Codegen",
+    "question": "Playwright Codegen và Playwright Inspector khác nhau như thế nào?",
+    "options": {
+      "A": "Codegen và Inspector là cùng một công cụ",
+      "B": "Codegen sinh code, Inspector dùng để debug",
+      "C": "Inspector sinh code; Codegen dùng để debug",
+      "D": "Codegen chỉ dùng CI; Inspector chỉ local"
+    },
+    "answer": "B",
+    "explanation": "Codegen: playwright codegen — ghi thao tác, xuất code Python. Inspector: PWDEBUG=1 hoặc page.pause() — inspect, chạy từng bước."
+  },
+  {
+    "id": 19,
+    "tag": "Inspector & Codegen",
+    "question": "Playwright Inspector được kích hoạt bằng cách nào?",
+    "options": {
+      "A": "Thêm --debug khi chạy pytest",
+      "B": "Gọi page.inspect() trong code",
+      "C": "Cài extension trên browser",
+      "D": "Dùng PWDEBUG=1 hoặc page.pause()"
+    },
+    "answer": "D",
+    "explanation": "page.pause() hoạt động với mọi setup (kể cả conftest custom của dự án training). PWDEBUG=1 pytest dùng khi cài pytest-playwright. Inspector cho phép step-through và inspect locator."
+  },
+  {
+    "id": 20,
+    "tag": "Frames & Iframe",
+    "question": "Để click button bên trong iframe, đoạn code nào đúng?",
+    "options": {
+      "A": "page.frame('myFrame').locator('button').click()",
+      "B": "page.frame_locator('#myIframe').locator('button').click()",
+      "C": "page.switch_to_frame('#myIframe'); page.locator('button').click()",
+      "D": "page.locator('iframe#myIframe button').click()"
+    },
+    "answer": "B",
+    "explanation": "frame_locator() là API hiện đại. A cần name attribute. C là Selenium. D không xuyên iframe boundary."
+  },
+  {
+    "id": 21,
+    "tag": "Windows & Tabs",
+    "question": "Khi click link mở tab mới (target=_blank), đoạn code nào lấy tab mới đúng (sync API)?",
+    "options": {
+      "A": "page.click('a'); new_page = context.wait_for_event('page')",
+      "B": "with context.expect_page() as page_info:\n    page.click('a')\nnew_page = page_info.value",
+      "C": "page.click('a'); new_page = browser.new_page()",
+      "D": "context.wait_for_event('page')"
+    },
+    "answer": "B",
+    "explanation": "expect_page() + click trong cùng block tránh race condition. A click trước có thể miss event. C/D sai."
+  },
+  {
+    "id": 22,
+    "tag": "Windows & Tabs",
+    "question": "Khác biệt giữa tab target=_blank và popup window.open() trong Playwright Python?",
+    "options": {
+      "A": "Không khác — cả hai dùng context.wait_for_event('page')",
+      "B": "target=_blank → context.expect_page(); window.open() → page.expect_popup()",
+      "C": "window.open() không xử lý được trong Playwright",
+      "D": "Cả hai dùng browser.wait_for_event('window')"
+    },
+    "answer": "B",
+    "explanation": "Tab mới: context.expect_page(). Popup: page.expect_popup(). Cả hai cần đăng ký listener TRƯỚC action trigger."
+  },
+  {
+    "id": 23,
+    "tag": "Dialogs",
+    "question": "Để xử lý Alert dialog (window.alert), đoạn code nào đúng?",
+    "options": {
+      "A": "page.click('#btn'); page.on('dialog', lambda d: d.accept())",
+      "B": "page.on('dialog', lambda d: d.accept()); page.click('#btn')",
+      "C": "page.wait_for_event('dialog'); page.click('#btn')",
+      "D": "dialog = page.wait_for_dialog(); dialog.accept()"
+    },
+    "answer": "B",
+    "explanation": "Handler PHẢI đăng ký TRƯỚC action trigger dialog. A đăng ký sau click. C cần expect pattern tương tự tab mới."
+  },
+  {
+    "id": 24,
+    "tag": "Dialogs",
+    "question": "Khác biệt xử lý confirm và prompt so với alert trong Playwright?",
+    "options": {
+      "A": "Không khác — cả 3 dùng dialog.accept() giống nhau",
+      "B": "confirm: dismiss() = Cancel; prompt: accept('text') để điền giá trị",
+      "C": "confirm và prompt tự đóng, không cần xử lý",
+      "D": "Playwright chỉ hỗ trợ alert"
+    },
+    "answer": "B",
+    "explanation": "alert: chỉ accept(). confirm: accept()/dismiss(). prompt: accept('text')/dismiss().",
+    "options_as_code": true
+  },
+  {
+    "id": 25,
+    "tag": "Screenshots & Videos",
+    "question": "Với pytest-playwright, cấu hình nào chụp screenshot CHỈ KHI test thất bại?",
+    "options": {
+      "A": "browser_context_args = {\"screenshot\": \"only-on-failure\"}",
+      "B": "pytest.ini: addopts = --screenshot only-on-failure",
+      "C": "browser.new_context(screenshot=\"only-on-failure\")",
+      "D": "pytest --screenshot on-failure"
+    },
+    "answer": "B",
+    "explanation": "Screenshot khi fail cấu hình qua CLI/plugin pytest-playwright (--screenshot only-on-failure), KHÔNG qua browser_context_args. 'on-failure' không phải giá trị hợp lệ. Dự án training dùng sync_playwright thuần: dùng hook pytest_runtest_makereport + page.screenshot()."
+  },
+  {
+    "id": 26,
+    "tag": "Screenshots & Videos",
+    "question": "Với pytest-playwright, để quay video và CHỈ giữ khi test fail, cấu hình nào đúng?",
+    "options": {
+      "A": "pytest --video on-failure",
+      "B": "pytest.ini: addopts = --video retain-on-failure",
+      "C": "browser.new_context(record_video_mode=\"retain-on-failure\")",
+      "D": "browser.new_context(record_video_dir=\"videos/\", on_failure=True)"
+    },
+    "answer": "B",
+    "explanation": "Giá trị đúng: retain-on-failure (CLI hoặc pytest.ini). record_video_mode không tồn tại trong browser.new_context() của Playwright Python. on_failure=True cũng không phải API."
+  },
+  {
+    "id": 27,
+    "tag": "Tracing",
+    "question": "Playwright Tracing ghi lại những thông tin nào?",
+    "options": {
+      "A": "Chỉ screenshots và actions",
+      "B": "Chỉ network requests và console logs",
+      "C": "Actions, screenshots, DOM snapshots, network, console — xem offline qua trace viewer",
+      "D": "CPU/memory usage và render metrics"
+    },
+    "answer": "C",
+    "explanation": "Trace file (.zip) đầy đủ. Xem: playwright show-trace trace.zip hoặc trace.playwright.dev."
+  },
+  {
+    "id": 28,
+    "tag": "Tracing",
+    "question": "Để bật Tracing và xem sau khi test chạy xong, cách nào đúng với Playwright Python (sync)?",
+    "options": {
+      "A": "Trace tự mở Playwright Inspector khi chạy pytest",
+      "B": "browser_context_args = {\"trace\": \"on-first-retry\"}",
+      "C": "context.tracing.start()\ncontext.tracing.stop(path='trace.zip')",
+      "D": "Chỉ cần page.screenshot() sau mỗi bước"
+    },
+    "answer": "C",
+    "explanation": "context.tracing.start/stop() dùng được với sync_playwright + conftest custom. on-first-retry chỉ có ở @playwright/test (Node), không có trong pytest-playwright Python. Với pytest-playwright có thêm: pytest --tracing retain-on-failure."
+  },
+  {
+    "id": 29,
+    "tag": "Hooks",
+    "question": "Giả sử cần phải tạo hook để create record trước khi vào testcase và delete record sau khi thực hiện test thì cấu trúc nào bên dưới đây là đúng nhất ?",
+    "options": {
+      "A": "@pytest.fixture()\ndef setup_record():\ncreate_record()\nyield\ndelete_record()",
+      "B": "@pytest.fixture()\ndef setup_record():\ncreate_record()\nreturn\ndelete_record()",
+      "C": "@pytest.fixture()\ndef setup_record():\nyield\ncreate_record()\ndelete_record()",
+      "D": "@pytest.fixture()\ndef setup_record():\ncreate_record()\ndelete_record()\nyield"
+    },
+    "answer": "A",
+    "explanation": "Đáp án A đúng vì yield đóng vai trò là \"điểm tạp dừng\" chia fixture, code trước yield sẽ chạy trước testcase (setup / create data), code sau yield sẽ chạy sau testcase kết thúc (teardown / cleanup)"
+  },
+  {
+    "id": 30,
+    "tag": "Hooks",
+    "question": "Trước mỗi test cần mở /products và login. Sau mỗi test cần screenshot nếu fail. Hook nào phù hợp?",
+    "options": {
+      "A": "fixture scope='class' cho login và screenshot",
+      "B": "autouse fixture (function scope) cho login;\npytest_runtest_makereport hook cho screenshot khi fail",
+      "C": "fixture scope='class' login; autouse function screenshot",
+      "D": "Không cần fixture, viết thẳng vào mỗi test"
+    },
+    "answer": "B",
+    "explanation": "Login trước mỗi test → autouse fixture scope function. Screenshot khi fail → pytest_runtest_makereport (hook), không phải autouse fixture 'after test'."
+  },
+  {
+    "id": 31,
+    "tag": "Git",
+    "question": "File .gitignore chuẩn cho dự án Playwright Python nên bao gồm những gì?",
+    "options": {
+      "A": ".venv/ và playwright-report/ là đủ",
+      "B": ".venv/, __pycache__/, .env, auth.json, test-results/, playwright-report/, report/, .pytest_cache/",
+      "C": "Chỉ .env và auth.json — các file khác có thể commit",
+      "D": "Playwright tự sinh .gitignore khi playwright install"
+    },
+    "answer": "B",
+    "explanation": ".env, auth.json: thông tin nhạy cảm. test-results/, report: artifact. .venv/, __pycache__: Python env/cache. Playwright KHÔNG tự tạo .gitignore."
+  },
+  {
+    "id": 32,
+    "tag": "Git",
+    "question": "Trong dự án Playwright nhóm nhiều người, vấn đề gì nếu tất cả commit thẳng lên main?",
+    "options": {
+      "A": "Không vấn đề — nhanh hơn",
+      "B": "Conflict thường xuyên, khó track, không có review trước khi vào main",
+      "C": "Git tự resolve conflict",
+      "D": "Chỉ vấn đề nếu team > 10 người"
+    },
+    "answer": "B",
+    "explanation": "Workflow đúng: branch riêng → Pull Request → review → merge."
+  },
+  {
+    "id": 33,
+    "tag": "Git",
+    "question": "Team muốn lưu playwright-report/ lên git. Vấn đề gì sẽ xảy ra?",
+    "options": {
+      "A": "Không vấn đề — HTML nhẹ",
+      "B": "Report chứa screenshots/videos làm repo phình to; dùng CI artifact hoặc Allure",
+      "C": "git lfs giải quyết mọi vấn đề",
+      "D": "Đổi tên folder để git không track"
+    },
+    "answer": "B",
+    "explanation": "Binary không compress tốt trên git. git lfs chỉ giảm nhẹ. Đổi tên folder không ảnh hưởng tracking."
+  },
+  {
+    "id": 34,
+    "tag": "Bonus",
+    "question": "Với pytest-playwright, để chạy test trên chromium, firefox và webkit, cần gì?",
+    "options": {
+      "A": "browsers = [\"chromium\", \"firefox\", \"webkit\"] trong conftest",
+      "B": "pytest --browser chromium --browser firefox --browser webkit",
+      "C": "parallel = {\"browsers\": [\"chromium\", \"firefox\", \"webkit\"]}",
+      "D": "pytest --browser=chromium,firefox,webkit"
+    },
+    "answer": "B",
+    "explanation": "pytest-playwright hỗ trợ nhiều --browser trên CLI. Parametrize browser_name chỉ đúng khi kèm fixture từ plugin. browsers/parallel không phải API. D: cú pháp --browser=... không hợp lệ."
+  },
+  {
+    "id": 35,
+    "tag": "Bonus",
+    "question": "Để tối ưu khi nhiều test cần trạng thái đã đăng nhập, best practice Playwright Python?",
+    "options": {
+      "A": "fixture scope='class' login một lần, share page cho cả class",
+      "B": "Login một lần trong conftest session;\ncontext.storage_state(path='auth.json');\ntái dùng new_context(storage_state='auth.json')",
+      "C": "Hardcode username/password trong autouse fixture mỗi test",
+      "D": "page.evaluate() set cookie trước mỗi test"
+    },
+    "answer": "B",
+    "explanation": "storage_state tái sử dụng session. Login mỗi test chậm. Share page anti-pattern. Hardcode vi phạm bảo mật."
   }
 ]

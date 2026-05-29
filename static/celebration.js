@@ -110,19 +110,18 @@ function showCelebrationPopup(ranking, total, currentPlayerId) {
     <p class="eval-title">Kết quả của bạn</p>
     <p class="eval-score">${myScore}/${total} câu đúng</p>
     <p class="eval-badge"><span class="eval-icon">${ev.icon}</span> <strong>${ev.label}</strong></p>
-    <p class="eval-detail">${ev.detail}</p>
   `;
 
-  const legendEl = document.getElementById("evalLegend");
-  if (legendEl) {
-    const { minGood, minPass, minAvg } = scoreThresholds(total);
-    legendEl.innerHTML = `
-      <li><span>🏆</span> Tốt: ≥ ${minGood} câu đúng (≥ 80%)</li>
-      <li><span>✅</span> Đạt: ${minPass}–${minGood - 1} câu đúng (60–79%)</li>
-      <li><span>🔶</span> Trung bình: ${minAvg}–${minPass - 1} câu đúng (40–59%)</li>
-      <li><span>❌</span> Yếu: &lt; ${minAvg} câu đúng (&lt; 40%)</li>
-    `;
-  }
+  // const legendEl = document.getElementById("evalLegend");
+  // if (legendEl) {
+  //   const { minGood, minPass, minAvg } = scoreThresholds(total);
+  //   legendEl.innerHTML = `
+  //     <li><span>🏆</span> Tốt: ≥ ${minGood} câu đúng (≥ 80%)</li>
+  //     <li><span>✅</span> Đạt: ${minPass}–${minGood - 1} câu đúng (60–79%)</li>
+  //     <li><span>🔶</span> Trung bình: ${minAvg}–${minPass - 1} câu đúng (40–59%)</li>
+  //     <li><span>❌</span> Yếu: &lt; ${minAvg} câu đúng (&lt; 40%)</li>
+  //   `;
+  // }
 
   overlay.classList.remove("hidden");
   document.body.classList.add("celebration-open");

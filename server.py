@@ -32,6 +32,26 @@ def ordered_options(options: dict[str, str]) -> dict[str, str]:
     return {k: options[k] for k in OPTION_KEYS if k in options}
 
 
+def build_review_questions() -> list[dict]:
+    out: list[dict] = []
+    for i, q in enumerate(QUESTIONS):
+        item: dict[str, Any] = {
+            "index": i,
+            "id": q["id"],
+            "tag": q.get("tag", ""),
+            "question": q["question"],
+            "options": ordered_options(q["options"]),
+            "answer": q["answer"],
+            "explanation": q.get("explanation", ""),
+        }
+        if q.get("image"):
+            item["image"] = q["image"]
+        if q.get("options_as_code"):
+            item["options_as_code"] = True
+        out.append(item)
+    return out
+
+
 def _load_dotenv_files() -> None:
     """Nạp .env local (quiz_live/ hoặc tests_python/) nếu biến chưa có trong môi trường."""
     for path in (Path(__file__).parent / ".env", Path(__file__).parent.parent / ".env"):
@@ -125,6 +145,18 @@ class Session:
             for pid, p in self.players.items()
         ]
 
+    def focus_warnings(self) -> list[dict]:
+        items = [
+            {
+                "player_id": pid,
+                "name": p["name"],
+                "count": p.get("focus_lost", 0),
+            }
+            for pid, p in self.players.items()
+            if p.get("focus_lost", 0) > 0
+        ]
+        return sorted(items, key=lambda x: (-x["count"], x["name"]))
+
     async def broadcast(self, message: dict, *, host: bool = True, players: bool = True) -> None:
         dead: list[str] = []
         if host and self.host_ws:
@@ -143,7 +175,7 @@ class Session:
 
     def question_payload(self, index: int) -> dict:
         q = QUESTIONS[index]
-        return {
+        payload: dict[str, Any] = {
             "type": "question",
             "index": index,
             "total": len(QUESTIONS),
@@ -154,6 +186,11 @@ class Session:
             "duration": QUESTION_SECONDS,
             "deadline": self.question_deadline,
         }
+        if q.get("image"):
+            payload["image"] = q["image"]
+        if q.get("options_as_code"):
+            payload["options_as_code"] = True
+        return payload
 
     async def start_quiz(self) -> None:
         if not self.players:
@@ -195,18 +232,21 @@ class Session:
             if ans == correct:
                 p["score"] += 1
         ranking = sorted(self.player_list(), key=lambda x: (-x["score"], x["name"]))
-        await self.broadcast(
-            {
-                "type": "reveal",
-                "index": self.current_index,
-                "total": len(QUESTIONS),
-                "question": q["question"],
-                "options": ordered_options(q["options"]),
-                "correct": correct,
-                "ranking": ranking,
-                "reveal_seconds": REVEAL_SECONDS,
-            }
-        )
+        reveal: dict[str, Any] = {
+            "type": "reveal",
+            "index": self.current_index,
+            "total": len(QUESTIONS),
+            "question": q["question"],
+            "options": ordered_options(q["options"]),
+            "correct": correct,
+            "ranking": ranking,
+            "reveal_seconds": REVEAL_SECONDS,
+        }
+        if q.get("image"):
+            reveal["image"] = q["image"]
+        if q.get("options_as_code"):
+            reveal["options_as_code"] = True
+        await self.broadcast(reveal)
         self.reveal_deadline = time.time() + REVEAL_SECONDS
         await asyncio.sleep(REVEAL_SECONDS)
         if self.current_index + 1 >= len(QUESTIONS):
@@ -220,7 +260,34 @@ class Session:
         if self._timer_task and not self._timer_task.done():
             self._timer_task.cancel()
         ranked = sorted(self.player_list(), key=lambda x: (-x["score"], x["name"]))
-        await self.broadcast({"type": "finished", "ranking": ranked, "total": len(QUESTIONS)})
+        review_questions = build_review_questions()
+        base = {"type": "finished", "ranking": ranked, "total": len(QUESTIONS)}
+        if self.host_ws:
+            try:
+                await self.host_ws.send_json(base)
+            except Exception:
+                pass
+        dead: list[str] = []
+        for pid, ws in list(self.player_ws.items()):
+            p = self.players.get(pid)
+            if not p:
+                continue
+            my_answers = [
+                str((p.get("answers") or {}).get(i, "") or "").upper()
+                for i in range(len(QUESTIONS))
+            ]
+            try:
+                await ws.send_json(
+                    {
+                        **base,
+                        "my_answers": my_answers,
+                        "questions": review_questions,
+                    }
+                )
+            except Exception:
+                dead.append(pid)
+        for pid in dead:
+            self.player_ws.pop(pid, None)
 
     async def submit_answer(self, player_id: str, choice: str) -> None:
         if self.phase != "question":
@@ -353,6 +420,7 @@ async def ws_play(websocket: WebSocket, code: str) -> None:
     code = code.upper()
     if code not in sessions:
         await websocket.send_json({"type": "error", "message": "Mã phòng không tồn tại"})
+        await asyncio.sleep(0.05)
         await websocket.close()
         return
     session = sessions[code]
@@ -365,12 +433,27 @@ async def ws_play(websocket: WebSocket, code: str) -> None:
         name = (hello.get("name") or "").strip()[:40]
         if not name:
             await websocket.send_json({"type": "error", "message": "Vui lòng nhập tên"})
+            await asyncio.sleep(0.05)
+            await websocket.close()
+            return
+        if session.phase == "finished":
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "message": "Quiz đã kết thúc. Vui lòng liên hệ host để biết thêm thông tin.",
+                }
+            )
+            await asyncio.sleep(0.05)
             await websocket.close()
             return
         if session.phase != "lobby":
             await websocket.send_json(
-                {"type": "error", "message": "Quiz đã bắt đầu — không thể tham gia"}
+                {
+                    "type": "error",
+                    "message": "Quiz đã bắt đầu. Bạn không thể tham gia phòng lúc này.",
+                }
             )
+            await asyncio.sleep(0.05)
             await websocket.close()
             return
         player_id = secrets.token_hex(8)
@@ -410,10 +493,8 @@ async def ws_play(websocket: WebSocket, code: str) -> None:
                 session.players[player_id]["focus_lost"] += 1
                 await session.broadcast(
                     {
-                        "type": "focus_warning",
-                        "player_id": player_id,
-                        "name": session.players[player_id]["name"],
-                        "count": session.players[player_id]["focus_lost"],
+                        "type": "focus_warnings",
+                        "warnings": session.focus_warnings(),
                     },
                     host=True,
                     players=False,

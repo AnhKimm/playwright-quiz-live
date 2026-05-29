@@ -200,10 +200,17 @@ function showReveal(msg) {
   show(reveal);
   lastRevealTotal = msg.total || lastRevealTotal;
   $("revealMeta").textContent = `Sau câu ${msg.index + 1}/${msg.total}`;
-  $("revealQuestion").textContent = msg.question || "";
+  renderQuestionBlock(
+    $("revealQuestion"),
+    $("revealImageWrap"),
+    $("revealImage"),
+    msg.question,
+    msg.image
+  );
   renderOptionsList($("revealOptions"), msg.options || {}, {
     correct: msg.correct,
     readonly: true,
+    optionsAsCode: !!msg.options_as_code,
   });
   renderRankingTable(msg.ranking || [], msg.total, "revealRankBody", "", playerNameCell);
   startRevealCountdown(msg.reveal_seconds ?? 3);
@@ -211,6 +218,20 @@ function showReveal(msg) {
 
 function escapeHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderFocusWarnings(warnings) {
+  const el = $("focusWarnings");
+  if (!el) return;
+  if (!warnings.length) {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  el.classList.remove("hidden");
+  el.innerHTML = `<p class="q-meta" style="margin: 0 0 8px">⚠ Thí sinh rời tab quiz</p><ul class="focus-warn-list">${warnings
+    .map((w) => `<li>${escapeHtml(w.name)} <span class="badge">${w.count} lần</span></li>`)
+    .join("")}</ul>`;
 }
 
 function handleMsg(msg) {
@@ -231,9 +252,18 @@ function handleMsg(msg) {
     case "question":
       stopRevealCountdown();
       show(live);
-      $("liveMeta").textContent = `Câu ${msg.index + 1}/${msg.total} · [${msg.tag}]`;
-      $("liveQuestion").textContent = msg.question;
-      renderOptionsList($("liveOptions"), msg.options || {}, { readonly: true });
+      $("liveMeta").textContent = `Câu ${msg.index + 1}/${msg.total}`;
+      renderQuestionBlock(
+        $("liveQuestion"),
+        $("liveImageWrap"),
+        $("liveImage"),
+        msg.question,
+        msg.image
+      );
+      renderOptionsList($("liveOptions"), msg.options || {}, {
+        readonly: true,
+        optionsAsCode: !!msg.options_as_code,
+      });
       updateTimer(msg.duration);
       $("answeredStat").textContent = "";
       break;
@@ -252,8 +282,8 @@ function handleMsg(msg) {
       renderRanking(msg.ranking || [], msg.total);
       setStatus("Quiz kết thúc");
       break;
-    case "focus_warning":
-      setStatus(`⚠ ${msg.name} rời tab (${msg.count} lần)`);
+    case "focus_warnings":
+      renderFocusWarnings(msg.warnings || []);
       break;
     case "error":
       alert(msg.message);
