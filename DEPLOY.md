@@ -170,7 +170,7 @@ docker build ... && docker run ...      # hoặc restart uvicorn
 |----------|---------|
 | Session | RAM — restart server = mất phòng đang chơi |
 | Scale | 1 instance; không load-balance nhiều pod |
-| Chống AI | Giám sát phòng + 10s/câu; không proctoring video |
+| Chống AI | Giám sát phòng + 45s/câu; không proctoring video |
 | Auth | Chưa có mật khẩu phòng — ai có mã đều vào được |
 
 Có thể bổ sung sau: mật khẩu host, PIN phòng, export CSV kết quả.

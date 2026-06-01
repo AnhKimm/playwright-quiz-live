@@ -24,7 +24,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-QUESTION_SECONDS = 10
+QUESTION_SECONDS = 45
 REVEAL_SECONDS = 3
 OPTION_KEYS = ("A", "B", "C", "D")
 STATIC_DIR = Path(__file__).parent / "static"
@@ -530,7 +530,7 @@ async def ws_play(websocket: WebSocket, code: str) -> None:
                 "player_id": player_id,
                 "code": code,
                 "rules": [
-                    "Mỗi câu 10 giây — hết giờ không gửi được đáp án",
+                    "Mỗi câu 45 giây — hết giờ không gửi được đáp án",
                     "Không dùng AI / không tra cứu — tự làm",
                     "Không copy câu hỏi; giữ tab quiz đang mở",
                 ],

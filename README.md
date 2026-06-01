@@ -37,7 +37,7 @@ uvicorn server:app --host 0.0.0.0 --port 8765
 2. Gửi thí sinh link `/play.html` + **mã phòng**
 3. Thí sinh nhập tên, chờ trong lobby
 4. Host bấm **Bắt đầu quiz** khi đủ người
-5. Mỗi câu 10 giây → hiện đáp án → câu tiếp theo
+5. Mỗi câu 45 giây → hiện đáp án → câu tiếp theo
 6. Kết thúc: bảng xếp hạng
 
 ## Cập nhật câu hỏi
